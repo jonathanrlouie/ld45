@@ -1,0 +1,5 @@
+(
+  title: "Guinea Pig Adventure",
+  dimensions: Some((1024, 512)),
+  resizable: false,
+)

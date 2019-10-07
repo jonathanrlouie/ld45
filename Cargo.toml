@@ -1,0 +1,17 @@
+[package]
+name = "ld45"
+version = "0.1.0"
+authors = ["Jonathan Louie <jonathanrlouie@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tiled = "0.7.2"
+amethyst = "0.13.0"
+ncollide2d = "0.20.1"
+nalgebra = "0.18.1"
+
+[features]
+vulkan = ["amethyst/vulkan"]
+tiles = ["amethyst/tiles"]
