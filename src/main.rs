@@ -1,5 +1,7 @@
 use std::time::Duration;
 use amethyst::{
+    animation::AnimationBundle,
+    assets::PrefabLoaderSystemDesc,
     config::Config,
     core::{
         SystemBundle,
@@ -10,6 +12,7 @@ use amethyst::{
     prelude::{Application, GameDataBuilder},
     renderer::{
         types::DefaultBackend,
+        sprite::SpriteRender,
         RenderDebugLines, RenderFlat2D, RenderToWindow, RenderingBundle
     },
     tiles::{RenderTiles2D, Tile, TileMap},
@@ -20,6 +23,7 @@ use amethyst::{
 mod components;
 mod tile_map;
 mod level1;
+mod level2;
 mod systems;
 mod collision_world;
 mod util;
@@ -40,11 +44,21 @@ fn main() -> amethyst::Result<()> {
     let key_bindings_path = app_root.join("resources/input.ron");
 
     let game_data = GameDataBuilder::default()
+        .with_system_desc(
+            PrefabLoaderSystemDesc::<level1::PlayerPrefabData>::default(),
+            "scene_loader",
+            &[],
+        )
         .with_bundle(
             InputBundle::<StringBindings>::new()
                 .with_bindings_from_file(&key_bindings_path)?
         )?
-        .with_bundle(TransformBundle::new())?
+        .with_bundle(AnimationBundle::<level1::AnimationId, SpriteRender>::new(
+            "sprite_animation_control",
+            "sprite_sampler_interpolation",
+        ))?
+        .with_bundle(TransformBundle::new()
+            .with_dep(&["sprite_animation_control", "sprite_sampler_interpolation"]))?
         .with_bundle(
             RenderingBundle::<DefaultBackend>::new()
                 .with_plugin(

@@ -1,33 +1,23 @@
 use amethyst::{
-    animation::{
-        get_animation_set, AnimationBundle, AnimationCommand, AnimationControlSet, AnimationSet,
-        AnimationSetPrefab, EndControl,
-    },
-    assets::{AssetStorage, Loader, ProgressCounter, PrefabData, PrefabLoader, PrefabLoaderSystemDesc, RonFormat},
+    assets::{AssetStorage, Loader},
     core::{
         math::{Vector2, Vector3, Point3},
         transform::Transform
     },
-    derive::PrefabData,
     ecs::{
         prelude::{Builder, Dispatcher, DispatcherBuilder, Entity, World, WorldExt}
     },
-    error::Error,
     prelude::{GameData, State, StateData, StateEvent, Trans},
     renderer::{
         camera::{Camera, Projection},
         formats::texture::ImageFormat,
-        sprite::{
-            prefab::{SpriteScenePrefab},
-            SpriteSheet, SpriteSheetHandle, SpriteRender},
+        sprite::{SpriteSheet, SpriteSheetHandle, SpriteRender},
         SpriteSheetFormat, Texture
     },
     tiles::{Tile, TileMap as AmethystTileMap},
     window::ScreenDimensions,
     ui::{Anchor, TtfFormat, UiText, UiTransform},
 };
-use serde::{Serialize, Deserialize};
-
 use ncollide2d as nc;
 use nalgebra as na;
 
@@ -43,33 +33,20 @@ use crate::{
     systems,
     collision_world::*,
     tile_map_collision,
-    level2
 };
 
-#[derive(Eq, PartialOrd, PartialEq, Hash, Debug, Copy, Clone, Serialize, Deserialize)]
-pub enum AnimationId {
-    IdleRight
-}
-
-#[derive(Debug, Clone, PrefabData, Deserialize)]
-pub struct PlayerPrefabData {
-    /// Information for rendering a scene with sprites
-    sprite_scene: SpriteScenePrefab,
-    /// Аll animations that can be run on the entity
-    animation_set: AnimationSetPrefab<AnimationId, SpriteRender>,
-}
 
 pub const SPRITE_WIDTH: f32 = 32.0;
 pub const HALF_WIDTH: f32 = SPRITE_WIDTH / 2.0;
 
-pub struct Level1<'a, 'b> {
+pub struct Level2<'a, 'b> {
     dispatcher: Dispatcher<'a, 'b>
 }
 
-impl<'a, 'b> Level1<'a, 'b> {
+impl<'a, 'b> Level2<'a, 'b> {
     pub fn new() -> Self {
-        Level1 {
-            dispatcher: Level1::initialise_dispatcher()
+        Level2 {
+            dispatcher: Level2::initialise_dispatcher()
         }
     }
 
@@ -80,13 +57,12 @@ impl<'a, 'b> Level1<'a, 'b> {
         dispatcher_builder.add(systems::collision::CollisionSystem, "collision_system", &[]);
         dispatcher_builder.add(systems::input::InputSystem, "input_system", &[]);
         dispatcher_builder.add(systems::hud::HudSystem, "hud_system", &[]);
-        dispatcher_builder.add(systems::animation::AnimationSystem, "animation_system", &[]);
 
         dispatcher_builder.build()
     }
 }
 
-impl<'a, 'b> State<GameData<'a, 'b>, StateEvent> for Level1<'a, 'b> {
+impl<'a, 'b> State<GameData<'a, 'b>, StateEvent> for Level2<'a, 'b> {
     fn on_start(&mut self, data: StateData<GameData<'a, 'b>>) {
         let StateData { mut world, .. } = data;
 
@@ -117,26 +93,17 @@ impl<'a, 'b> State<GameData<'a, 'b>, StateEvent> for Level1<'a, 'b> {
             .build();
 
         // Initialise the player
-        let player_prefab = world.exec(|loader: PrefabLoader<'_, PlayerPrefabData>| {
-            loader.load(
-                "prefab/player_animation.ron",
-                RonFormat,
-                ()
-            )
-        });
-
-        /*let player_sheet_handle = load_sprite_sheet(
+        let player_sheet_handle = load_sprite_sheet(
             &mut world,
             PngPath("textures/player.png"),
             RonPath("textures/player.ron")
-        );*/
+        );
 
         let mut player_transform = Transform::default();
         player_transform.set_translation_xyz(SPRITE_WIDTH * -12.0, SPRITE_WIDTH * -6.0, 0.0);
 
         let player = world
             .create_entity()
-            .with(player_prefab)
             .with(components::Player {
                 lr_input_state: 0.0,
                 snapback: Vector2::new(0.0, 0.0),
@@ -145,10 +112,10 @@ impl<'a, 'b> State<GameData<'a, 'b>, StateEvent> for Level1<'a, 'b> {
             })
             .with(components::HP { value: 30 })
             .with(components::Power { value: 1 })
-            /*.with(SpriteRender {
+            .with(SpriteRender {
                 sprite_sheet: player_sheet_handle.clone(),
                 sprite_number: 8
-            })*/
+            })
             .with(components::Motion{
                 velocity: Vector2::new(0.0, 0.0),
                 acceleration: Vector2::new(0.0, 0.0)
@@ -310,21 +277,14 @@ impl<'a, 'b> State<GameData<'a, 'b>, StateEvent> for Level1<'a, 'b> {
         data.data.update(&data.world);
         self.dispatcher.dispatch(&data.world);
 
-        /*let exiting = data.world.write_resource::<Exiting>();
-        if exiting.exiting {
+        let exiting = data.world.write_resource::<Exiting>();
+        /*if exiting.exiting {
             exiting.exiting = false;
-            Trans::Switch(Box::new(level2::Level2::new()))
+            Trans::Switch(Box::new(level2::Level2))
         } else {*/
             Trans::None
         //}
     }
-
-    /*fn on_stop(&mut self, data: StateData<GameData<'a, 'b>>) {
-        for entity in  {
-            // if entity does not have player component, delete it
-            data.world.delete_entity(entity);
-        }
-    }*/
 }
 
 fn load_sprite_sheet(world: &mut World, png_path: PngPath, ron_path: RonPath) -> SpriteSheetHandle {
